@@ -1,6 +1,5 @@
-import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getTrending, getPopular, getTopRated, IMAGE_BASE } from "@/services/tmdb";
+import { getTrending, getPopular, getTopRated, getByGenre, IMAGE_BASE } from "@/services/tmdb";
 import { MovieCard } from "@/components/MovieCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
@@ -10,16 +9,16 @@ import { Button } from "@/components/ui/button";
 function MovieCarousel({ title, data, isLoading }: { title: string, data: any[], isLoading: boolean }) {
   return (
     <section className="py-6">
-      <h2 className="text-xl font-bold mb-4 px-4 md:px-8 text-foreground">{title}</h2>
-      <div className="flex overflow-x-auto gap-4 px-4 md:px-8 pb-4 snap-x snap-mandatory scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+      <h2 className="text-sm sm:text-base font-bold uppercase tracking-wider text-primary border-l-2 border-primary pl-3 mb-4 mx-4 md:mx-8">{title}</h2>
+      <div className="flex overflow-x-auto gap-4 px-4 md:px-8 pb-4 snap-x snap-mandatory scrollbar-hide">
         {isLoading
           ? Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="min-w-[150px] md:min-w-[200px] snap-start">
+              <div key={i} className="min-w-[130px] sm:min-w-[160px] md:min-w-[180px] snap-start">
                 <Skeleton className="w-full aspect-[2/3] rounded-xl" />
               </div>
             ))
           : data.map((item) => (
-              <div key={item.id} className="min-w-[150px] md:min-w-[200px] snap-start">
+              <div key={item.id} className="min-w-[130px] sm:min-w-[160px] md:min-w-[180px] snap-start">
                 <MovieCard
                   id={item.id}
                   title={item.title || item.name}
@@ -33,6 +32,15 @@ function MovieCarousel({ title, data, isLoading }: { title: string, data: any[],
       </div>
     </section>
   );
+}
+
+function GenreCarousel({ title, genreId }: { title: string, genreId: number }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['genre', 'movie', genreId],
+    queryFn: () => getByGenre('movie', genreId),
+  });
+
+  return <MovieCarousel title={title} data={data?.results || []} isLoading={isLoading} />;
 }
 
 export default function Home() {
@@ -61,7 +69,7 @@ export default function Home() {
   return (
     <div className="w-full min-h-screen bg-background pb-20">
       {/* Hero Section */}
-      <div className="relative w-full h-[60vh] md:h-[80vh] bg-black">
+      <div className="relative w-full h-[45vh] sm:h-[55vh] md:h-[70vh] bg-black">
         {trendingLoading ? (
           <Skeleton className="w-full h-full" />
         ) : heroItem ? (
@@ -74,25 +82,26 @@ export default function Home() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
               <div className="absolute inset-0 bg-gradient-to-r from-background via-background/50 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-background to-transparent" />
             </div>
             
             <div className="absolute bottom-0 left-0 p-6 md:p-12 w-full md:w-2/3 space-y-4">
-              <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tight drop-shadow-lg">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white tracking-tight drop-shadow-lg">
                 {heroItem.title || heroItem.name}
               </h1>
-              <p className="text-muted-foreground line-clamp-3 md:line-clamp-4 text-sm md:text-base max-w-2xl">
+              <p className="text-muted-foreground line-clamp-2 sm:line-clamp-3 text-xs sm:text-sm max-w-2xl">
                 {heroItem.overview}
               </p>
               <div className="flex items-center gap-4 pt-4">
                 <Link href={`/${heroItem.media_type || 'movie'}/${heroItem.id}`}>
-                  <Button size="lg" className="bg-primary text-white hover:bg-primary/90 gap-2 px-8">
-                    <Play className="w-5 h-5 fill-current" />
+                  <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2 text-xs sm:text-sm px-3 sm:px-6 py-1.5 sm:py-2">
+                    <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
                     Play Now
                   </Button>
                 </Link>
                 <Link href={`/${heroItem.media_type || 'movie'}/${heroItem.id}`}>
-                  <Button size="lg" variant="secondary" className="gap-2 px-8 bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-sm">
-                    <Info className="w-5 h-5" />
+                  <Button size="lg" variant="secondary" className="gap-2 text-xs sm:text-sm px-3 sm:px-6 py-1.5 sm:py-2 bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-sm">
+                    <Info className="w-4 h-4 sm:w-5 sm:h-5" />
                     More Info
                   </Button>
                 </Link>
@@ -102,7 +111,7 @@ export default function Home() {
         ) : null}
       </div>
 
-      <div className="mt-[-4rem] relative z-10 space-y-6">
+      <div className="mt-[-2rem] sm:mt-[-4rem] relative z-10 space-y-2 sm:space-y-6">
         <MovieCarousel 
           title="Trending Today" 
           data={trending?.results?.slice(1) || []} 
@@ -123,6 +132,13 @@ export default function Home() {
           data={topRatedMovies?.results || []} 
           isLoading={topMoviesLoading} 
         />
+        
+        {/* Genre carousels */}
+        <GenreCarousel title="Action" genreId={28} />
+        <GenreCarousel title="Comedy" genreId={35} />
+        <GenreCarousel title="Drama" genreId={18} />
+        <GenreCarousel title="Horror" genreId={27} />
+        <GenreCarousel title="Sci-Fi" genreId={878} />
       </div>
     </div>
   );

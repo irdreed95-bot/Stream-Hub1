@@ -10,6 +10,8 @@ import SeriesDetails from "@/pages/SeriesDetails";
 import LiveTV from "@/pages/LiveTV";
 import Search from "@/pages/Search";
 import AdminDashboard from "@/pages/AdminDashboard";
+import Settings from "@/pages/Settings";
+import Login from "@/pages/Login";
 import { Sidebar } from "@/components/Sidebar";
 import { AdminBanner } from "@/components/AdminBanner";
 
@@ -24,10 +26,10 @@ const queryClient = new QueryClient({
 
 function Router() {
   return (
-    <div className="flex min-h-screen w-full flex-col md:flex-row bg-background">
+    <div className="flex min-h-screen w-full flex-col md:flex-row bg-background overflow-x-hidden">
       <AdminBanner />
       <Sidebar />
-      <main className="flex-1 pb-16 md:pb-0 relative overflow-x-hidden">
+      <main className="flex-1 min-w-0 pb-16 md:pb-0 relative">
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/movie/:id" component={MovieDetails} />
@@ -35,6 +37,8 @@ function Router() {
           <Route path="/live" component={LiveTV} />
           <Route path="/search" component={Search} />
           <Route path="/admin" component={AdminDashboard} />
+          <Route path="/settings" component={Settings} />
+          <Route path="/login" component={Login} />
           <Route component={NotFound} />
         </Switch>
       </main>

@@ -1,63 +1,91 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
+import { Wifi, WifiOff, Loader2 } from "lucide-react";
 
 interface LivePlayerProps {
   url: string;
+  channelName?: string;
 }
 
-export function LivePlayer({ url }: LivePlayerProps) {
+export function LivePlayer({ url, channelName }: LivePlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
+  const [status, setStatus] = useState<"loading" | "playing" | "error">("loading");
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
+    if (!url || !videoRef.current) return;
+    setStatus("loading");
+    setErrorMsg("");
+    
+    // Cleanup previous
+    if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
+    
     const video = videoRef.current;
-    if (!video || !url) return;
-
-    let hls: Hls;
-
-    if (Hls.isSupported() && url.includes('.m3u8')) {
-      hls = new Hls({
-        maxMaxBufferLength: 30,
-      });
+    
+    if (Hls.isSupported() && (url.includes('.m3u8') || url.includes('m3u'))) {
+      const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+      hlsRef.current = hls;
       hls.loadSource(url);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().catch(e => console.log('Autoplay prevented', e));
+        video.play().catch(() => {});
+        setStatus("playing");
       });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Native Safari support
-      video.src = url;
-      video.addEventListener('loadedmetadata', () => {
-        video.play().catch(e => console.log('Autoplay prevented', e));
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        if (data.fatal) {
+          setStatus("error");
+          setErrorMsg("Stream unavailable or channel is currently offline.");
+        }
       });
     } else {
-      // Fallback for non-HLS URLs
       video.src = url;
-      video.play().catch(e => console.log('Autoplay prevented', e));
+      video.oncanplay = () => setStatus("playing");
+      video.onerror = () => { setStatus("error"); setErrorMsg("Unable to load stream."); };
+      video.play().catch(() => {});
     }
-
-    return () => {
-      if (hls) {
-        hls.destroy();
-      }
-    };
+    
+    return () => { hlsRef.current?.destroy(); };
   }, [url]);
 
-  if (!url) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-zinc-950 text-muted-foreground rounded-xl border border-white/5">
-        Select a channel to start watching
-      </div>
-    );
-  }
-
   return (
-    <div className="w-full h-full bg-black rounded-xl overflow-hidden shadow-2xl border border-white/5 relative group">
-      <video 
-        ref={videoRef} 
-        controls 
-        className="w-full h-full object-contain"
-        crossOrigin="anonymous"
+    <div className="relative w-full h-full bg-black rounded-xl overflow-hidden border border-white/5">
+      <video
+        ref={videoRef}
+        className={status === "playing" ? "w-full h-full object-contain" : "hidden"}
+        controls
+        playsInline
       />
+      
+      {status === "loading" && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#0f0f10]">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-full border-2 border-primary/20 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">Loading stream{channelName ? ` — ${channelName}` : ""}...</p>
+        </div>
+      )}
+      
+      {status === "error" && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-[#0f0f10] p-6">
+          <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center border border-destructive/20">
+            <WifiOff className="w-10 h-10 text-destructive" />
+          </div>
+          <div className="text-center space-y-2 max-w-xs">
+            <h3 className="text-base font-bold text-white">Channel Offline</h3>
+            <p className="text-xs text-muted-foreground">{errorMsg || "This channel is currently unavailable or the stream has ended."}</p>
+            {channelName && <p className="text-xs text-primary font-medium">{channelName}</p>}
+          </div>
+          <button
+            onClick={() => { setStatus("loading"); if(videoRef.current) videoRef.current.load(); }}
+            className="px-4 py-2 text-xs font-semibold bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      )}
     </div>
   );
 }
