@@ -1,102 +1,95 @@
 import { Link, useLocation } from "wouter";
-import { Home, Film, Tv, Radio, Search, Settings, PlayCircle, UserCircle, Shield } from "lucide-react";
+import { Home, Film, Monitor, Radio, Search, Settings, UserCircle, LayoutGrid, Shield, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const DESKTOP_NAV = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/search?type=movie", label: "Movies", icon: Film },
-  { href: "/search?type=tv", label: "Series", icon: Tv },
-  { href: "/live", label: "Live TV", icon: Radio },
-  { href: "/search", label: "Search", icon: Search },
-];
-
-const MOBILE_NAV = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/live", label: "Live TV", icon: Radio },
-  { href: "/search", label: "Search", icon: Search },
-  { href: "/settings", label: "Settings", icon: Settings },
-  { href: "/login", label: "Profile", icon: UserCircle },
-];
+import { useI18n } from "@/lib/i18n";
 
 export function Sidebar() {
   const [location] = useLocation();
+  const { t, isRtl } = useI18n();
 
-  const isRouteActive = (href: string) => {
-    if (href === "/") return location === "/";
-    return location === href || location.startsWith(href.split("?")[0]);
+  const mainNav = [
+    { href: "/", labelKey: "home" as const, icon: Home },
+    { href: "/search?type=movie", labelKey: "movies" as const, icon: Film },
+    { href: "/search?type=tv", labelKey: "series" as const, icon: Monitor },
+    { href: "/live", labelKey: "liveTV" as const, icon: Radio },
+    { href: "/categories", labelKey: "categories" as const, icon: LayoutGrid },
+    { href: "/search", labelKey: "search" as const, icon: Search },
+  ];
+
+  const bottomNav = [
+    { href: "/settings", labelKey: "settings" as const, icon: Settings },
+    { href: "/profile", labelKey: "profile" as const, icon: UserCircle },
+    { href: "/admin", labelKey: "admin" as const, icon: Shield, subtle: true },
+  ];
+
+  const mobileNav = [
+    { href: "/", labelKey: "home" as const, icon: Home },
+    { href: "/live", labelKey: "liveTV" as const, icon: Radio },
+    { href: "/search", labelKey: "search" as const, icon: Search },
+    { href: "/categories", labelKey: "categories" as const, icon: LayoutGrid },
+    { href: "/profile", labelKey: "profile" as const, icon: UserCircle },
+  ];
+
+  const isActive = (href: string) => {
+    const base = href.split("?")[0];
+    if (base === "/") return location === "/";
+    return location.startsWith(base);
   };
 
   return (
     <>
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 h-screen sticky top-0 bg-card border-r border-border z-40">
-        <div className="p-6 flex items-center gap-3 text-primary">
-          <PlayCircle className="w-8 h-8 fill-primary text-background" />
-          <span className="text-xl font-bold tracking-tight text-foreground">StreamVault</span>
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex flex-col w-60 h-screen sticky top-0 bg-[#0a0a0b] border-e border-border z-40 shrink-0">
+        <div className="p-5 flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+            <PlayCircle className="w-5 h-5 text-primary-foreground" />
+          </div>
+          <div className="leading-none">
+            <span className="text-base font-black text-foreground tracking-tight">{t("appNameAr")}</span>
+            <span className="text-xs text-muted-foreground ms-1.5">Sarad</span>
+          </div>
         </div>
-        
-        <nav className="flex-1 px-4 py-6 space-y-2">
-          {DESKTOP_NAV.map((item) => {
-            const isActive = isRouteActive(item.href);
-            return (
-              <Link key={item.label} href={item.href} className={cn(
-                "flex items-center gap-4 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
-                isActive 
-                  ? "bg-primary/10 text-primary" 
+
+        <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
+          {mainNav.map(({ href, labelKey, icon: Icon }) => (
+            <Link key={href} href={href} data-testid={`nav-${labelKey}`}
+              className={cn("flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                isActive(href)
+                  ? "bg-primary/15 text-primary"
                   : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
-              )} data-testid={`nav-desktop-${item.label.toLowerCase().replace(" ", "-")}`}>
-                <item.icon className="w-5 h-5" />
-                {item.label}
-              </Link>
-            );
-          })}
+              )}>
+              <Icon className="w-4.5 h-4.5 shrink-0" />
+              {t(labelKey)}
+            </Link>
+          ))}
         </nav>
 
-        <div className="p-4 mt-auto space-y-2">
-          <Link href="/settings" className={cn(
-            "flex items-center gap-4 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
-            isRouteActive("/settings") 
-              ? "bg-primary/10 text-primary" 
-              : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
-          )} data-testid="nav-desktop-settings">
-            <Settings className="w-5 h-5" />
-            Settings
-          </Link>
-          <Link href="/login" className={cn(
-            "flex items-center gap-4 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
-            isRouteActive("/login") 
-              ? "bg-primary/10 text-primary" 
-              : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
-          )} data-testid="nav-desktop-login">
-            <UserCircle className="w-5 h-5" />
-            Login
-          </Link>
-          <Link href="/admin" className={cn(
-            "flex items-center gap-4 px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200 opacity-60 hover:opacity-100",
-            isRouteActive("/admin") 
-              ? "bg-primary/10 text-primary opacity-100" 
-              : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
-          )} data-testid="nav-desktop-admin">
-            <Shield className="w-4 h-4" />
-            Admin
-          </Link>
+        <div className="px-3 pb-4 space-y-0.5 border-t border-border pt-3">
+          {bottomNav.map(({ href, labelKey, icon: Icon, subtle }) => (
+            <Link key={href} href={href} data-testid={`nav-${labelKey}`}
+              className={cn("flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                isActive(href) ? "bg-primary/15 text-primary"
+                  : subtle ? "text-muted-foreground/50 hover:text-muted-foreground hover:bg-white/5"
+                  : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+              )}>
+              <Icon className="w-4.5 h-4.5 shrink-0" />
+              {t(labelKey)}
+            </Link>
+          ))}
         </div>
       </aside>
 
-      {/* Mobile Bottom Nav */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t border-border z-50 flex items-center justify-around px-2">
-        {MOBILE_NAV.map((item) => {
-          const isActive = isRouteActive(item.href);
-          return (
-            <Link key={item.label} href={item.href} className={cn(
-              "flex flex-col items-center justify-center w-full h-full space-y-1",
-              isActive ? "text-primary" : "text-muted-foreground"
-            )} data-testid={`nav-mobile-${item.label.toLowerCase().replace(" ", "-")}`}>
-              <item.icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </Link>
-          );
-        })}
+      {/* Mobile bottom bar */}
+      <div className="md:hidden fixed bottom-0 inset-x-0 h-14 bg-[#0a0a0b]/95 backdrop-blur-md border-t border-border z-50 flex items-center">
+        {mobileNav.map(({ href, labelKey, icon: Icon }) => (
+          <Link key={href} href={href} data-testid={`mob-nav-${labelKey}`}
+            className={cn("flex-1 flex flex-col items-center justify-center gap-0.5 h-full transition-colors",
+              isActive(href) ? "text-primary" : "text-muted-foreground"
+            )}>
+            <Icon className="w-5 h-5" />
+            <span className="text-[9px] font-medium leading-none">{t(labelKey)}</span>
+          </Link>
+        ))}
       </div>
     </>
   );

@@ -1,14 +1,20 @@
 import { useState, useEffect } from "react";
-import { Settings as SettingsIcon, Globe, PlayCircle, HardDrive, Download, Info } from "lucide-react";
+import { Settings as SettingsIcon, Globe, PlayCircle, HardDrive, Download, Info, Search as SearchIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
+import { useI18n } from "@/lib/i18n";
+import { useLocation } from "wouter";
 
 export default function Settings() {
   const { toast } = useToast();
-  const [rtlMode, setRtlMode] = useState(() => localStorage.getItem("rtl_mode") === "1");
+  const { t, lang, setLang, isRtl } = useI18n();
+  const [, setLocation] = useLocation();
+  const [rtlMode, setRtlMode] = useState(() => localStorage.getItem("rtl_mode") === "1" || localStorage.getItem("sarad_lang") === "ar");
+  const [secretSearch, setSecretSearch] = useState("");
 
   const handleRtlToggle = (checked: boolean) => {
     setRtlMode(checked);
@@ -19,7 +25,7 @@ export default function Settings() {
   const handleClearCache = () => {
     toast({
       title: "Success",
-      description: "Cache cleared successfully",
+      description: t("cacheCleared"),
     });
   };
 
@@ -30,43 +36,72 @@ export default function Settings() {
     });
   };
 
+  const handleSecretSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && secretSearch.toLowerCase() === "devportal") {
+      setLocation("/admin");
+    }
+  };
+
   return (
     <div className="w-full min-h-screen bg-background p-6 md:p-10 pb-24">
       <div className="max-w-3xl mx-auto space-y-8">
         
-        <div className="flex items-center gap-3 mb-8">
-          <SettingsIcon className="w-8 h-8 text-primary" />
-          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-3">
+            <SettingsIcon className="w-8 h-8 text-primary" />
+            <h1 className="text-3xl font-bold text-foreground">{t("settings")}</h1>
+          </div>
+          
+          <div className="relative max-w-[200px]">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input 
+              placeholder={t("searchPlaceholder")}
+              className="pl-9 h-9 text-sm bg-card border-border"
+              value={secretSearch}
+              onChange={(e) => setSecretSearch(e.target.value)}
+              onKeyDown={handleSecretSearch}
+            />
+          </div>
         </div>
 
         {/* 1. Language & Region */}
         <section className="space-y-4">
           <div className="flex items-center gap-2 text-foreground font-semibold text-lg border-b border-border pb-2">
             <Globe className="w-5 h-5 text-primary" />
-            <h2>Language & Region</h2>
+            <h2>{t("language")} & {t("region")}</h2>
           </div>
           <div className="bg-card rounded-xl p-6 border border-border space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="font-medium text-foreground">Interface Language</h3>
-                <p className="text-sm text-muted-foreground">Select the language for menus and buttons</p>
-              </div>
-              <Select defaultValue="en">
-                <SelectTrigger className="w-full sm:w-[180px] bg-background">
-                  <SelectValue placeholder="Select Language" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="ar">العربية (Arabic)</SelectItem>
-                  <SelectItem value="fr">Français</SelectItem>
-                  <SelectItem value="es">Español</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             
+            {/* Quick Language Switcher */}
+            <div className="flex flex-col gap-3 pb-6 border-b border-border/50">
+              <h3 className="font-medium text-foreground">{t("interfaceLanguage")}</h3>
+              <div className="flex gap-2">
+                <Button 
+                  variant={lang === "en" ? "default" : "secondary"} 
+                  className={`flex-1 ${lang === "en" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                  onClick={() => {
+                    setLang("en");
+                    setRtlMode(false);
+                  }}
+                >
+                  English
+                </Button>
+                <Button 
+                  variant={lang === "ar" ? "default" : "secondary"} 
+                  className={`flex-1 font-sans ${lang === "ar" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                  onClick={() => {
+                    setLang("ar");
+                    setRtlMode(true);
+                  }}
+                >
+                  العربية
+                </Button>
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="font-medium text-foreground">Content Language</h3>
+                <h3 className="font-medium text-foreground">{t("contentLanguage")}</h3>
                 <p className="text-sm text-muted-foreground">Preferred language for titles and descriptions</p>
               </div>
               <Select defaultValue="all">
@@ -84,10 +119,10 @@ export default function Settings() {
 
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium text-foreground">RTL Mode</h3>
+                <h3 className="font-medium text-foreground">{t("rtlMode")}</h3>
                 <p className="text-sm text-muted-foreground">Right-to-Left layout for Arabic</p>
               </div>
-              <Switch checked={rtlMode} onCheckedChange={handleRtlToggle} />
+              <Switch checked={isRtl || rtlMode} onCheckedChange={handleRtlToggle} disabled={lang === "ar"} />
             </div>
           </div>
         </section>
@@ -101,7 +136,7 @@ export default function Settings() {
           <div className="bg-card rounded-xl p-6 border border-border space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="font-medium text-foreground">Default Server</h3>
+                <h3 className="font-medium text-foreground">{t("defaultServer")}</h3>
                 <p className="text-sm text-muted-foreground">Preferred streaming server</p>
               </div>
               <Select defaultValue="vidsrc">
@@ -118,7 +153,7 @@ export default function Settings() {
             
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium text-foreground">Auto-play next episode</h3>
+                <h3 className="font-medium text-foreground">{t("autoPlay")}</h3>
                 <p className="text-sm text-muted-foreground">Automatically play the next episode</p>
               </div>
               <Switch defaultChecked />
@@ -126,7 +161,7 @@ export default function Settings() {
 
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium text-foreground">HD Quality by Default</h3>
+                <h3 className="font-medium text-foreground">{t("hdQuality")}</h3>
                 <p className="text-sm text-muted-foreground">Always select highest available quality</p>
               </div>
               <Switch defaultChecked />
@@ -146,7 +181,7 @@ export default function Settings() {
                 <h3 className="font-medium text-foreground">Cache Size: 247 MB</h3>
                 <p className="text-sm text-muted-foreground">Temporary files and images</p>
               </div>
-              <Button variant="outline" onClick={handleClearCache}>Clear Cache</Button>
+              <Button variant="outline" onClick={handleClearCache}>{t("clearCache")}</Button>
             </div>
             
             <div className="flex items-center justify-between">
@@ -163,7 +198,7 @@ export default function Settings() {
         <section className="space-y-4">
           <div className="flex items-center gap-2 text-foreground font-semibold text-lg border-b border-border pb-2">
             <Download className="w-5 h-5 text-primary" />
-            <h2>Active Downloads</h2>
+            <h2>{t("activeDownloads")}</h2>
           </div>
           <div className="bg-card rounded-xl p-6 border border-border space-y-6">
             <p className="text-sm text-muted-foreground mb-4">Downloads are stored locally on your device.</p>
@@ -176,7 +211,7 @@ export default function Settings() {
                 </div>
                 <div className="flex items-center gap-4">
                   <Progress value={75} className="h-2" />
-                  <Button variant="ghost" size="sm" className="h-6 text-destructive text-xs px-2">Cancel</Button>
+                  <Button variant="ghost" size="sm" className="h-6 text-destructive text-xs px-2">{t("cancel")}</Button>
                 </div>
               </div>
 
@@ -187,18 +222,7 @@ export default function Settings() {
                 </div>
                 <div className="flex items-center gap-4">
                   <Progress value={42} className="h-2" />
-                  <Button variant="ghost" size="sm" className="h-6 text-destructive text-xs px-2">Cancel</Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="font-medium text-foreground">The Dark Knight (2008)</span>
-                  <span className="text-green-500 font-medium">Complete • 2.1 GB</span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <Progress value={100} className="h-2 [&>div]:bg-green-500" />
-                  <Button variant="ghost" size="sm" className="h-6 text-muted-foreground text-xs px-2">Remove</Button>
+                  <Button variant="ghost" size="sm" className="h-6 text-destructive text-xs px-2">{t("cancel")}</Button>
                 </div>
               </div>
             </div>
@@ -209,11 +233,11 @@ export default function Settings() {
         <section className="space-y-4">
           <div className="flex items-center gap-2 text-foreground font-semibold text-lg border-b border-border pb-2">
             <Info className="w-5 h-5 text-primary" />
-            <h2>About</h2>
+            <h2>{t("about")}</h2>
           </div>
           <div className="bg-card rounded-xl p-6 border border-border text-center space-y-2">
-            <h3 className="font-bold text-foreground text-xl">StreamVault</h3>
-            <p className="text-muted-foreground text-sm">v2.0.0</p>
+            <h3 className="font-bold text-foreground text-xl">{t("appName")}</h3>
+            <p className="text-muted-foreground text-sm">{t("version")} 2.0.0</p>
             <div className="pt-4 mt-4 border-t border-border flex flex-col items-center gap-2">
               <p className="text-xs text-muted-foreground">Powered by</p>
               <div className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-green-400 text-lg">
