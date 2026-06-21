@@ -1,322 +1,246 @@
-import React, { useState, useEffect, useRef } from "react";
-import { sources, StreamSource } from "@/services/streamSources";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState, useEffect, useRef } from "react";
+import { sources } from "@/services/streamSources";
+import { Loader2, RefreshCw, ChevronDown } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
+import { arabicMovies, arabicSeries, IMAGE_BASE as AR_IMG } from "@/lib/arabicMock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import videojs from "video.js";
 import "video.js/dist/video-js.css";
-import { useI18n } from "@/lib/i18n";
-import { arabicMovies, arabicSeries, IMAGE_BASE as AR_IMG } from "@/lib/arabicMock";
-import { Skeleton } from "@/components/ui/skeleton";
 
-interface VideoPlayerProps {
-  tmdbId: number;
-  type: "movie" | "tv";
-  season?: number;
-  episode?: number;
-}
+const SANDBOX = "allow-same-origin allow-scripts allow-forms allow-presentation allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation";
+
+interface ValidatedServer { id: string; name: string; url: string | null; valid: boolean; }
+interface VideoPlayerProps { tmdbId: number; type: "movie" | "tv"; season?: number; episode?: number; }
 
 export function VideoPlayer({ tmdbId, type, season, episode }: VideoPlayerProps) {
   const { t } = useI18n();
-  const [activeGroup, setActiveGroup] = useState<"A" | "B" | "C" | "D">("A");
-  const [activeSource, setActiveSource] = useState<StreamSource | null>(null);
-  const [fallbackLoading, setFallbackLoading] = useState(false);
-  
-  // Custom streams from admin panel
+  const [activeView, setActiveView] = useState<"embed" | "direct" | "arabic">("embed");
+  const [validServers, setValidServers] = useState<ValidatedServer[]>([]);
+  const [validating, setValidating] = useState(true);
+  const [selectedServerId, setSelectedServerId] = useState<string>("");
   const [customStreams, setCustomStreams] = useState<any[]>([]);
 
-  const [iframeLoaded, setIframeLoaded] = useState(false);
-  const [iframeError, setIframeError] = useState(false);
-
+  // Load admin custom streams
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('admin_custom_streams');
+      const stored = localStorage.getItem("admin_custom_streams");
       if (stored) {
-        const parsed = JSON.parse(stored);
-        const matches = parsed.filter((s: any) => s.tmdbId === tmdbId.toString() && s.type === type);
-        setCustomStreams(matches);
+        const all = JSON.parse(stored);
+        setCustomStreams(all.filter((s: any) => s.tmdbId === String(tmdbId) && s.type === type));
       }
-    } catch (e) {}
+    } catch {}
   }, [tmdbId, type]);
 
-  const groupASources = sources.filter(s => s.group === "A");
-  const groupBSources = sources.filter(s => s.group === "B");
-  const groupCSources = sources.filter(s => s.group === "C");
-  const groupDSources = sources.filter(s => s.group === "D");
-
+  // Validate servers via API
   useEffect(() => {
-    if (activeGroup === "A" && groupASources.length > 0 && !activeSource) {
-      setActiveSource(groupASources[0]);
-    }
-  }, [activeGroup, groupASources, activeSource]);
+    setValidating(true);
+    setValidServers([]);
+    setSelectedServerId("");
+    
+    fetch("/api/validate-servers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tmdbId: String(tmdbId), type, season: season || 1, episode: episode || 1 }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        const valid = (data.servers as ValidatedServer[]).filter(s => s.valid);
+        // If none validated, show all as fallback
+        const toShow = valid.length > 0 ? valid : (data.servers as ValidatedServer[]);
+        setValidServers(toShow);
+        if (toShow.length > 0) setSelectedServerId(toShow[0].id);
+      })
+      .catch(() => {
+        // Network error fallback: show all embed sources
+        const fallback = sources.filter(s => s.group === "A").map(s => ({
+          id: s.id,
+          name: s.name,
+          url: s.getUrl(String(tmdbId), type, season, episode),
+          valid: true,
+        }));
+        setValidServers(fallback);
+        if (fallback.length > 0) setSelectedServerId(fallback[0].id);
+      })
+      .finally(() => setValidating(false));
+  }, [tmdbId, type, season, episode]);
 
-  useEffect(() => {
-    setIframeLoaded(false);
-    setIframeError(false);
-    if (activeGroup === "A" && activeSource && !activeSource.id.startsWith("custom-")) {
-      const timer = setTimeout(() => {
-        if (!iframeLoaded) {
-          setIframeError(true);
-        }
-      }, 12000);
-      return () => clearTimeout(timer);
-    }
-  }, [activeSource, activeGroup, iframeLoaded]);
+  const currentServer = validServers.find(s => s.id === selectedServerId);
+  const currentUrl = currentServer?.url || null;
 
-  const handleNextServer = () => {
-    if (activeGroup === "A" && activeSource) {
-      const currentIndex = groupASources.findIndex(s => s.id === activeSource.id);
-      if (currentIndex !== -1) {
-        setFallbackLoading(true);
-        setIframeError(false);
-        setTimeout(() => {
-          const nextIndex = (currentIndex + 1) % groupASources.length;
-          setActiveSource(groupASources[nextIndex]);
-          setFallbackLoading(false);
-        }, 1500);
-      }
-    }
-  };
+  // Admin custom stream url
+  const customMatch = customStreams.find(s => `custom-${s.label}` === selectedServerId);
 
-  const renderPlayer = () => {
-    if (fallbackLoading) {
-      return (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-black text-white space-y-4">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-medium">Trying next server...</p>
-        </div>
-      );
-    }
+  const iframeUrl = customMatch ? customMatch.url : currentUrl;
 
-    if (customStreams.length > 0 && activeGroup === "A" && activeSource?.id.startsWith('custom-')) {
-       const stream = customStreams.find(s => `custom-${s.label}` === activeSource.id);
-       if (stream) {
-         return (
-           <iframe
-            src={stream.url}
-            className="w-full h-full border-0"
-            allowFullScreen
-            sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation"
-          />
-         );
-       }
+  const handleNext = () => {
+    const allOptions = [
+      ...validServers.map(s => s.id),
+      ...customStreams.map(s => `custom-${s.label}`)
+    ];
+    const idx = allOptions.indexOf(selectedServerId);
+    if (idx >= 0) {
+      setSelectedServerId(allOptions[(idx + 1) % allOptions.length]);
     }
-
-    if (activeGroup === "A" && activeSource) {
-      const url = activeSource.getUrl(tmdbId.toString(), type, season, episode);
-      if (url) {
-        return (
-          <div className="relative w-full h-full">
-            <iframe
-              src={url}
-              className="w-full h-full border-0 relative z-10"
-              allowFullScreen
-              sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation"
-            />
-          </div>
-        );
-      }
-    }
-
-    if (activeGroup === "B") {
-      return <DirectPlayerGroup source={activeSource} />;
-    }
-
-    if (activeGroup === "D") {
-      const mockData = type === 'movie' ? arabicMovies : arabicSeries;
-      return (
-        <div className="w-full h-full bg-black overflow-y-auto p-4 custom-scrollbar">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {mockData.map((item) => (
-              <div key={item.id} className="relative group cursor-pointer aspect-[2/3] rounded-lg overflow-hidden border border-white/10"
-                onClick={() => {
-                  setActiveGroup("A");
-                  setActiveSource(groupASources[0]);
-                }}
-              >
-                <img src={`${AR_IMG}w342${item.poster}`} alt={item.title} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                  <span className="text-white font-bold text-sm text-right">{item.title}</span>
-                  <span className="text-primary text-xs text-right font-medium">{item.source}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    if (activeGroup === "C") {
-      return (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-black text-white p-8">
-          <div className="max-w-md text-center space-y-4">
-            <h3 className="text-xl font-bold">{activeSource?.name || t("scrapers")}</h3>
-            <div className="bg-primary/20 text-primary px-3 py-1 rounded-full inline-block text-sm font-semibold mb-4">
-              {t("comesSoon")}
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return <div className="w-full h-full flex items-center justify-center bg-black">{t("selectChannel")}</div>;
   };
 
   return (
-    <div className="w-full space-y-4">
-      {/* Player Frame */}
-      <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-white/5">
-        {renderPlayer()}
+    <div className="w-full space-y-3">
+      {/* View Tabs */}
+      <div className="flex gap-1 bg-muted/40 p-1 rounded-lg w-fit">
+        {(["embed", "direct", "arabic"] as const).map(v => (
+          <button key={v} data-testid={`tab-${v}`} onClick={() => setActiveView(v)}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${activeView === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+            {v === "embed" ? t("embeds") : v === "direct" ? t("directURL") : t("arabic")}
+          </button>
+        ))}
       </div>
 
-      {/* Server Switcher */}
-      <div className="bg-card rounded-xl p-4 border border-border">
-        <Tabs defaultValue="A" onValueChange={(v) => { setActiveGroup(v as any); setActiveSource(null); }}>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-            <TabsList className="grid grid-cols-4 bg-muted/50 w-full sm:w-auto">
-              <TabsTrigger value="A">{t("embeds")}</TabsTrigger>
-              <TabsTrigger value="B">{t("directURL")}</TabsTrigger>
-              <TabsTrigger value="C">{t("scrapers")}</TabsTrigger>
-              <TabsTrigger value="D">{t("arabic")}</TabsTrigger>
-            </TabsList>
-            
-            {activeGroup === "A" && (
-              <Button onClick={handleNextServer} variant="outline" size="sm" className="w-full sm:w-auto border-primary/50 hover:bg-primary/20 hover:text-primary transition-colors">
-                Next Server
-              </Button>
+      {activeView === "embed" && (
+        <>
+          {/* Server selector row */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {validating ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                {t("validatingServers")}
+              </div>
+            ) : (
+              <>
+                <div className="relative flex-1 min-w-[200px] max-w-xs">
+                  <select
+                    data-testid="server-select"
+                    value={selectedServerId}
+                    onChange={e => setSelectedServerId(e.target.value)}
+                    className="w-full appearance-none bg-card border border-border text-foreground text-sm rounded-lg px-3 py-2 pe-8 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                  >
+                    <optgroup label={t("embeds")}>
+                      {validServers.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </optgroup>
+                    {customStreams.length > 0 && (
+                      <optgroup label="Admin">
+                        {customStreams.map(s => (
+                          <option key={`custom-${s.label}`} value={`custom-${s.label}`}>{s.label}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                  <ChevronDown className="absolute end-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                </div>
+                <Button variant="secondary" size="sm" onClick={handleNext} data-testid="btn-next-server" className="text-xs">
+                  <RefreshCw className="w-3.5 h-3.5 me-1.5" />
+                  {t("nextServer")}
+                </Button>
+              </>
             )}
           </div>
 
-          <TabsContent value="A" className="mt-0">
-            <div className="flex flex-wrap gap-2">
-              {groupASources.map((src) => (
-                <Button
-                  key={src.id}
-                  variant={activeSource?.id === src.id ? "default" : "secondary"}
-                  size="sm"
-                  onClick={() => setActiveSource(src)}
-                >
-                  {src.name}
-                </Button>
-              ))}
-              {customStreams.map((src) => (
-                <Button
-                  key={`custom-${src.label}`}
-                  variant={activeSource?.id === `custom-${src.label}` ? "default" : "outline"}
-                  className="border-primary text-primary hover:bg-primary hover:text-white"
-                  size="sm"
-                  onClick={() => setActiveSource({ id: `custom-${src.label}`, name: src.label, group: 'A', getUrl: () => src.url })}
-                >
-                  ⭐ {src.label}
-                </Button>
-              ))}
-            </div>
-          </TabsContent>
+          {/* Player iframe */}
+          <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-white/5">
+            {validating ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-[#0f0f10]">
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              </div>
+            ) : iframeUrl ? (
+              <iframe
+                key={iframeUrl}
+                src={iframeUrl}
+                className="w-full h-full border-0"
+                allowFullScreen
+                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                sandbox={SANDBOX}
+                data-testid="embed-iframe"
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
+                No stream available
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
-          <TabsContent value="B" className="mt-0">
-            <div className="flex flex-wrap gap-2">
-              {groupBSources.map((src) => (
-                <Button
-                  key={src.id}
-                  variant={activeSource?.id === src.id ? "default" : "secondary"}
-                  size="sm"
-                  onClick={() => setActiveSource(src)}
-                >
-                  {src.name}
-                </Button>
-              ))}
-            </div>
-          </TabsContent>
+      {activeView === "direct" && (
+        <DirectPlayerView />
+      )}
 
-          <TabsContent value="C" className="mt-0">
-            <div className="flex flex-wrap gap-2">
-              {groupCSources.map((src) => (
-                <Button
-                  key={src.id}
-                  variant={activeSource?.id === src.id ? "default" : "secondary"}
-                  size="sm"
-                  onClick={() => setActiveSource(src)}
-                >
-                  {src.name}
-                </Button>
-              ))}
-            </div>
-          </TabsContent>
+      {activeView === "arabic" && (
+        <ArabicSourcesView tmdbId={tmdbId} type={type} season={season} episode={episode} />
+      )}
+    </div>
+  );
+}
 
-          <TabsContent value="D" className="mt-0">
-            <div className="flex flex-wrap gap-2">
-              {groupDSources.map((src) => (
-                <Button
-                  key={src.id}
-                  variant={activeSource?.id === src.id ? "default" : "secondary"}
-                  size="sm"
-                  onClick={() => setActiveSource(src)}
-                >
-                  {src.name}
-                </Button>
-              ))}
-            </div>
-          </TabsContent>
+// Direct URL player (Video.js)
+function DirectPlayerView() {
+  const [url, setUrl] = useState("");
+  const [playing, setPlaying] = useState("");
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const playerRef = useRef<any>(null);
 
-        </Tabs>
+  useEffect(() => {
+    if (!videoRef.current || !playing) return;
+    playerRef.current = videojs(videoRef.current, {
+      controls: true, fluid: true, responsive: true,
+      sources: [{ src: playing, type: playing.includes(".m3u8") ? "application/x-mpegURL" : "video/mp4" }]
+    });
+    return () => { playerRef.current?.dispose(); };
+  }, [playing]);
+
+  if (!playing) return (
+    <div className="w-full aspect-video bg-[#0f0f10] rounded-xl flex flex-col items-center justify-center gap-4 border border-border p-6">
+      <p className="text-sm text-muted-foreground text-center">Paste a direct video URL from DoodStream, Streamtape, Filemoon, Uqload, Mixdrop, or VK</p>
+      <div className="flex gap-2 w-full max-w-lg">
+        <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..." className="bg-muted border-border text-sm" data-testid="direct-url-input" />
+        <Button onClick={() => setPlaying(url)} disabled={!url} data-testid="btn-play-direct">Play</Button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="w-full aspect-video bg-black rounded-xl overflow-hidden">
+      <div data-vjs-player>
+        <video ref={videoRef} className="video-js vjs-big-play-centered w-full h-full" />
       </div>
     </div>
   );
 }
 
-// Group B Player
-function DirectPlayerGroup({ source }: { source: StreamSource | null }) {
+// Arabic sources view with mock poster grid
+function ArabicSourcesView({ tmdbId, type, season, episode }: { tmdbId: number; type: string; season?: number; episode?: number }) {
   const { t } = useI18n();
-  const [url, setUrl] = useState("");
-  const [playingUrl, setPlayingUrl] = useState("");
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const playerRef = useRef<any>(null);
+  const [selectedAr, setSelectedAr] = useState<string | null>(null);
+  const allArabic = [...arabicMovies, ...arabicSeries];
 
-  useEffect(() => {
-    if (!videoRef.current || !playingUrl) return;
-
-    playerRef.current = videojs(videoRef.current, {
-      controls: true,
-      fluid: true,
-      responsive: true,
-      sources: [{
-        src: playingUrl,
-        type: playingUrl.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4'
-      }]
-    });
-
-    return () => {
-      if (playerRef.current) {
-        playerRef.current.dispose();
-      }
-    };
-  }, [playingUrl]);
-
-  if (!playingUrl) {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-zinc-950">
-        <div className="max-w-lg w-full space-y-4">
-          <h3 className="text-xl font-bold text-center">{source?.name || t("directURL")}</h3>
-          <p className="text-sm text-center text-muted-foreground">
-            Paste a direct video URL (.mp4, .m3u8) from this provider to play it here.
-          </p>
-          <div className="flex gap-2">
-            <Input 
-              value={url} 
-              onChange={e => setUrl(e.target.value)} 
-              placeholder="https://example.com/video.mp4"
-              className="bg-zinc-900 border-zinc-800"
-            />
-            <Button onClick={() => setPlayingUrl(url)}>{t("playNow")}</Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Build VidSrc URL for selected Arabic title
+  const arUrl = selectedAr
+    ? `https://vidsrc.to/embed/${type}/${selectedAr}`
+    : null;
 
   return (
-    <div data-vjs-player className="w-full h-full bg-black">
-      <video ref={videoRef} className="video-js vjs-big-play-centered w-full h-full" />
+    <div className="space-y-4">
+      {arUrl && (
+        <div className="w-full aspect-video bg-black rounded-xl overflow-hidden border border-border">
+          <iframe src={arUrl} className="w-full h-full border-0" allowFullScreen sandbox={SANDBOX} />
+        </div>
+      )}
+      <p className="text-xs text-muted-foreground">Arabic titles — click to play via VidSrc</p>
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+        {allArabic.map(item => (
+          <button key={item.id} data-testid={`ar-card-${item.id}`}
+            onClick={() => setSelectedAr(String(item.tmdbId))}
+            className={`group relative aspect-[2/3] rounded-lg overflow-hidden bg-muted border transition-all ${selectedAr === String(item.tmdbId) ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/50"}`}>
+            <img src={`${AR_IMG}w185${item.poster}`} alt={item.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-2">
+              <p className="text-[10px] font-bold text-white leading-tight text-right" dir="rtl">{item.title}</p>
+              <p className="text-[9px] text-white/60">{item.year}</p>
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

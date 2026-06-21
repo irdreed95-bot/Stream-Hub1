@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Film, Monitor, Radio, Search, Settings, UserCircle, LayoutGrid, Shield, PlayCircle } from "lucide-react";
+import { Home, Film, Monitor, Radio, Search, Settings, UserCircle, LayoutGrid, Shield, PlayCircle, Tv2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 
@@ -12,6 +12,7 @@ export function Sidebar() {
     { href: "/search?type=movie", labelKey: "movies" as const, icon: Film },
     { href: "/search?type=tv", labelKey: "series" as const, icon: Monitor },
     { href: "/live", labelKey: "liveTV" as const, icon: Radio },
+    { href: "/tv", labelKey: "tv" as const, icon: Tv2 },
     { href: "/categories", labelKey: "categories" as const, icon: LayoutGrid },
     { href: "/search", labelKey: "search" as const, icon: Search },
   ];
@@ -25,8 +26,8 @@ export function Sidebar() {
   const mobileNav = [
     { href: "/", labelKey: "home" as const, icon: Home },
     { href: "/live", labelKey: "liveTV" as const, icon: Radio },
+    { href: "/tv", labelKey: "tv" as const, icon: Tv2 },
     { href: "/search", labelKey: "search" as const, icon: Search },
-    { href: "/categories", labelKey: "categories" as const, icon: LayoutGrid },
     { href: "/profile", labelKey: "profile" as const, icon: UserCircle },
   ];
 

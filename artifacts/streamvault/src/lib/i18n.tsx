@@ -10,6 +10,7 @@ const dict = {
     movies: "Movies",
     series: "Series",
     liveTV: "Live TV",
+    tv: "TV",
     search: "Search",
     settings: "Settings",
     profile: "Profile",
@@ -87,6 +88,25 @@ const dict = {
     goHome: "Go Home",
     comesSoon: "Coming Soon",
     arabicSearch: "Search in Arabic...",
+    addChannel: "Add Channel",
+    channelName: "Channel Name",
+    channelLogo: "Channel Logo URL",
+    streamUrl: "Stream URL (.m3u8)",
+    apkLink: "APK Download Link",
+    downloadApk: "Download New Version",
+    categoryImageUrl: "Category Image URL",
+    tvChannels: "TV Channels",
+    noChannels: "No channels added yet. Add channels in the Admin Panel.",
+    manageTvChannels: "Manage TV Channels",
+    categoryImages: "Category Images",
+    noValidServers: "Checking servers...",
+    validatingServers: "Finding best servers...",
+    switchServer: "Switch Server",
+    nextServer: "Next Server",
+    discord: "Discord",
+    instagram: "Instagram",
+    telegram: "Telegram",
+    followUs: "Follow Us",
   },
   ar: {
     appName: "Sarad",
@@ -95,6 +115,7 @@ const dict = {
     movies: "الأفلام",
     series: "المسلسلات",
     liveTV: "البث المباشر",
+    tv: "تلفزيون",
     search: "بحث",
     settings: "الإعدادات",
     profile: "الحساب",
@@ -146,7 +167,7 @@ const dict = {
     rememberMe: "تذكرني",
     forgotPassword: "نسيت كلمة المرور؟",
     downloads: "التحميلات",
-    help: "المساعدة والطلب",
+    help: "المساعدة والدعم",
     developerPortal: "بوابة المطور",
     language: "اللغة",
     region: "المنطقة",
@@ -172,6 +193,25 @@ const dict = {
     goHome: "العودة للرئيسية",
     comesSoon: "قريباً",
     arabicSearch: "ابحث بالعربي...",
+    addChannel: "إضافة قناة",
+    channelName: "اسم القناة",
+    channelLogo: "رابط شعار القناة",
+    streamUrl: "رابط البث (.m3u8)",
+    apkLink: "رابط تحميل التطبيق",
+    downloadApk: "تحميل الإصدار الجديد",
+    categoryImageUrl: "رابط صورة القسم",
+    tvChannels: "القنوات التلفزيونية",
+    noChannels: "لم تتم إضافة قنوات بعد. أضف القنوات من لوحة الإدارة.",
+    manageTvChannels: "إدارة القنوات التلفزيونية",
+    categoryImages: "صور الأقسام",
+    noValidServers: "جاري التحقق من الخوادم...",
+    validatingServers: "البحث عن أفضل الخوادم...",
+    switchServer: "تغيير الخادم",
+    nextServer: "الخادم التالي",
+    discord: "ديسكورد",
+    instagram: "إنستقرام",
+    telegram: "تيليغرام",
+    followUs: "تابعنا",
   }
 } as const;
 
@@ -204,7 +244,6 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("sarad_lang", lang);
   }, [lang, isRtl]);
 
-  // Restore on mount
   useEffect(() => {
     const saved = localStorage.getItem("sarad_lang") as Lang | null;
     if (saved) setLangState(saved);

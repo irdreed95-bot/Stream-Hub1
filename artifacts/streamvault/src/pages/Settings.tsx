@@ -42,10 +42,20 @@ export default function Settings() {
     }
   };
 
+  const apkLink = localStorage.getItem("admin_apk_link") || "";
+
   return (
     <div className="w-full min-h-screen bg-background p-6 md:p-10 pb-24">
       <div className="max-w-3xl mx-auto space-y-8">
         
+        {apkLink && (
+          <a href={apkLink} target="_blank" rel="noopener noreferrer" data-testid="btn-download-apk"
+            className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+            <Download className="w-5 h-5" />
+            {t("downloadApk")}
+          </a>
+        )}
+
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-3">
             <SettingsIcon className="w-8 h-8 text-primary" />

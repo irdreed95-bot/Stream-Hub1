@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { Film, Laugh, Ghost, Rocket, Users, Tv2, Sword, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,14 @@ const GENRES = [
 
 export default function Categories() {
   const { t } = useI18n();
+  const [categoryImages, setCategoryImages] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("admin_category_images");
+      if (raw) setCategoryImages(JSON.parse(raw));
+    } catch {}
+  }, []);
 
   return (
     <div className="w-full min-h-screen bg-background p-6 md:p-10 pb-24">
@@ -27,13 +36,22 @@ export default function Categories() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {GENRES.map((genre, index) => {
             const Icon = genre.icon;
+            const customImg = categoryImages[String(genre.id)];
+            
             return (
               <Link key={`${genre.id}-${index}`} href={`/search?type=movie&genre=${genre.id}`} data-testid={`category-${genre.key}`}>
-                <div className={cn(
-                  "relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer group flex flex-col items-center justify-center bg-gradient-to-br transition-all duration-300",
-                  genre.gradient
-                )}>
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                <div 
+                  className={cn(
+                    "relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer group flex flex-col items-center justify-center bg-gradient-to-br transition-all duration-300",
+                    !customImg && genre.gradient,
+                    customImg && "bg-cover bg-center"
+                  )}
+                  style={customImg ? { backgroundImage: `url(${customImg})` } : undefined}
+                >
+                  <div className={cn(
+                    "absolute inset-0 transition-colors",
+                    customImg ? "bg-black/50 group-hover:bg-black/30" : "bg-black/20 group-hover:bg-transparent"
+                  )} />
                   
                   <div className="z-10 flex flex-col items-center justify-center gap-3 transform group-hover:scale-110 transition-transform duration-300">
                     <Icon className="w-12 h-12 text-white/90 drop-shadow-md" />

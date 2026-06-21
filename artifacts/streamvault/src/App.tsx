@@ -8,6 +8,7 @@ import Home from "@/pages/Home";
 import MovieDetails from "@/pages/MovieDetails";
 import SeriesDetails from "@/pages/SeriesDetails";
 import LiveTV from "@/pages/LiveTV";
+import TV from "@/pages/TV";
 import Search from "@/pages/Search";
 import AdminDashboard from "@/pages/AdminDashboard";
 import Settings from "@/pages/Settings";
@@ -16,6 +17,7 @@ import Categories from "@/pages/Categories";
 import Profile from "@/pages/Profile";
 import { Sidebar } from "@/components/Sidebar";
 import { AdminBanner } from "@/components/AdminBanner";
+import { Footer } from "@/components/Footer";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
@@ -26,12 +28,13 @@ function Router() {
     <div className="flex min-h-screen w-full flex-col md:flex-row bg-background overflow-x-hidden">
       <AdminBanner />
       <Sidebar />
-      <main className="flex-1 min-w-0 pb-16 md:pb-0">
+      <main className="flex-1 min-w-0 pb-16 md:pb-0 flex flex-col">
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/movie/:id" component={MovieDetails} />
           <Route path="/tv/:id" component={SeriesDetails} />
           <Route path="/live" component={LiveTV} />
+          <Route path="/tv" component={TV} />
           <Route path="/search" component={Search} />
           <Route path="/categories" component={Categories} />
           <Route path="/profile" component={Profile} />
@@ -40,6 +43,7 @@ function Router() {
           <Route path="/admin" component={AdminDashboard} />
           <Route component={NotFound} />
         </Switch>
+        <Footer />
       </main>
     </div>
   );
