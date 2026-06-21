@@ -42,6 +42,25 @@ export default function AdminDashboard() {
   const [selectedGenreId, setSelectedGenreId] = useState("");
   const [newCatImageUrl, setNewCatImageUrl] = useState("");
 
+  // D1-D10 Server URL overrides
+  const DEFAULT_SERVER_NAMES = [
+    "VidSrc.to", "VidSrc.me", "Embed.su", "2Embed", "SmashyStream",
+    "VidSrc.cc", "VidSrc.xyz", "AutoEmbed", "MovieAPI", "Videasy"
+  ];
+  const DEFAULT_SERVER_PLACEHOLDERS = [
+    "https://vidsrc.to/embed/{type}/{id}",
+    "https://vidsrc.me/embed/{type}?tmdb={id}&season={season}&episode={episode}",
+    "https://embed.su/embed/{type}/{id}",
+    "https://www.2embed.cc/embed/{id}",
+    "https://embed.smashystream.com/playere.php?tmdb={id}",
+    "https://vidsrc.cc/embed/{type}/{id}",
+    "https://vidsrc.xyz/embed/{type}/{id}",
+    "https://autoembed.to/{type}/tmdb/{id}",
+    "https://movieapi.club/{type}/{id}",
+    "https://player.videasy.net/{type}/{id}",
+  ];
+  const [serverUrls, setServerUrls] = useState<string[]>(Array(10).fill(""));
+
   useEffect(() => {
     // Check session auth
     const sessionAuth = sessionStorage.getItem("admin_auth");
@@ -66,6 +85,14 @@ export default function AdminDashboard() {
     const catImgStr = localStorage.getItem("admin_category_images");
     if (catImgStr) {
       try { setCategoryImages(JSON.parse(catImgStr)); } catch (e) {}
+    }
+
+    const srvStr = localStorage.getItem("admin_server_urls");
+    if (srvStr) {
+      try {
+        const parsed = JSON.parse(srvStr);
+        if (Array.isArray(parsed)) setServerUrls(parsed.slice(0, 10).concat(Array(10).fill("")).slice(0, 10));
+      } catch (e) {}
     }
   }, []);
 
@@ -153,6 +180,25 @@ export default function AdminDashboard() {
   const saveApkLink = () => {
     localStorage.setItem("admin_apk_link", apkLink);
     toast({ title: t("save"), description: "APK Link updated." });
+  };
+
+  // D1-D10 Server URLs save handler
+  const saveServerUrls = () => {
+    localStorage.setItem("admin_server_urls", JSON.stringify(serverUrls));
+    dispatchSettingsChanged();
+    toast({ title: "تم الحفظ", description: "تم حفظ روابط السيرفرات D1–D10 بنجاح." });
+  };
+
+  const updateServerUrl = (i: number, val: string) => {
+    const updated = [...serverUrls];
+    updated[i] = val;
+    setServerUrls(updated);
+  };
+
+  const resetServerUrl = (i: number) => {
+    const updated = [...serverUrls];
+    updated[i] = "";
+    setServerUrls(updated);
   };
 
   // Category Image Handler
@@ -375,6 +421,59 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* D1-D10 Server URL Overrides */}
+        <Card className="border-border bg-card shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary/15 text-primary text-xs font-black">D</span>
+              {isRtl ? "سيرفرات D1 – D10 (تخصيص الروابط)" : "D1–D10 Server Overrides"}
+            </CardTitle>
+            <CardDescription>
+              {isRtl
+                ? "اترك الحقل فارغاً للاستخدام الافتراضي. يدعم المتغيرات: {id} {type} {season} {episode}"
+                : "Leave blank to use the built-in default. Supports variables: {id} {type} {season} {episode}"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3" dir="ltr">
+            {Array.from({ length: 10 }, (_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="shrink-0 w-10 h-9 flex items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-black shadow">
+                  D{i + 1}
+                </span>
+                <div className="flex-1 relative">
+                  <Input
+                    value={serverUrls[i] || ""}
+                    onChange={e => updateServerUrl(i, e.target.value)}
+                    placeholder={DEFAULT_SERVER_PLACEHOLDERS[i]}
+                    className="bg-background border-border text-sm font-mono pr-20"
+                    data-testid={`input-server-d${i + 1}`}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground/60 pointer-events-none">
+                    {DEFAULT_SERVER_NAMES[i]}
+                  </span>
+                </div>
+                {serverUrls[i] && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => resetServerUrl(i)}
+                    className="shrink-0 h-9 w-9 text-muted-foreground hover:text-destructive"
+                    title="Reset to default"
+                    data-testid={`btn-reset-d${i + 1}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            <div className="pt-3 flex justify-end">
+              <Button onClick={saveServerUrls} className="px-8" data-testid="btn-save-server-urls">
+                {isRtl ? "حفظ جميع السيرفرات" : "Save All Servers"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Custom Streams */}
         <Card className="border-border bg-card shadow-lg">

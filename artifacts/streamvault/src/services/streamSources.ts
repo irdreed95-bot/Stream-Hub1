@@ -79,6 +79,14 @@ export const sources: StreamSource[] = [
       ? `https://movieapi.club/movie/${id}`
       : `https://movieapi.club/tv/${id}-${s}-${e}`
   },
+  {
+    id: 'videasy',
+    name: 'Videasy',
+    group: 'A',
+    getUrl: (id, type, s, e) => type === 'movie'
+      ? `https://player.videasy.net/movie/${id}`
+      : `https://player.videasy.net/tv/${id}?season=${s}&episode=${e}`
+  },
   
   // Group B - Direct
   { id: 'doodstream', name: 'DoodStream', group: 'B', getUrl: () => null },

@@ -36,10 +36,20 @@ export function VideoPlayer({ tmdbId, type, season, episode }: VideoPlayerProps)
     setValidServers([]);
     setSelectedServerId("");
 
+    // Read admin-configured server URL overrides from localStorage
+    let adminUrls: string[] = Array(10).fill("");
+    try {
+      const raw = localStorage.getItem("admin_server_urls");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) adminUrls = parsed;
+      }
+    } catch {}
+
     fetch("/api/validate-servers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tmdbId: String(tmdbId), type, season: season || 1, episode: episode || 1 }),
+      body: JSON.stringify({ tmdbId: String(tmdbId), type, season: season || 1, episode: episode || 1, adminUrls }),
     })
       .then(r => r.json())
       .then(data => {
