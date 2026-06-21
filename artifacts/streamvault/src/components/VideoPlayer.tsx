@@ -142,15 +142,15 @@ export function VideoPlayer({ tmdbId, type, season, episode }: VideoPlayerProps)
               >
                 {validServers.length > 0 && (
                   <optgroup label={`✓ ${t("embeds")} (${validServers.length})`}>
-                    {validServers.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
+                    {validServers.map((s, i) => (
+                      <option key={s.id} value={s.id}>D{i + 1}</option>
                     ))}
                   </optgroup>
                 )}
                 {customStreams.length > 0 && (
                   <optgroup label="⭐ Admin">
-                    {customStreams.map(s => (
-                      <option key={`custom-${s.label}`} value={`custom-${s.label}`}>{s.label}</option>
+                    {customStreams.map((s, i) => (
+                      <option key={`custom-${s.label}`} value={`custom-${s.label}`}>D{validServers.length + i + 1}</option>
                     ))}
                   </optgroup>
                 )}
