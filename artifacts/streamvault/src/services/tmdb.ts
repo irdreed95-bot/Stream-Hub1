@@ -51,6 +51,10 @@ export async function getByGenre(type: 'movie' | 'tv', genreId: number, page: nu
   return fetchTmdb(`/discover/${type}`, { with_genres: genreId.toString(), page: page.toString() });
 }
 
+export async function getDiscover(type: 'movie' | 'tv', params: Record<string, string> = {}) {
+  return fetchTmdb(`/discover/${type}`, params);
+}
+
 export async function getSeasonDetails(tvId: number, seasonNumber: number) {
   return fetchTmdb(`/tv/${tvId}/season/${seasonNumber}`);
 }

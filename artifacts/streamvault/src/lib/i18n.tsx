@@ -107,6 +107,10 @@ const dict = {
     instagram: "Instagram",
     telegram: "Telegram",
     followUs: "Follow Us",
+    turkishSeries: "Turkish Dubbed Series",
+    arabicContent: "Arabic Movies & Series",
+    animeWorld: "Anime & Cartoon World",
+    indianMovies: "Indian Movies",
   },
   ar: {
     appName: "Sarad",
@@ -212,6 +216,10 @@ const dict = {
     instagram: "إنستقرام",
     telegram: "تيليغرام",
     followUs: "تابعنا",
+    turkishSeries: "مسلسلات تركية مدبلجة ومترجمة",
+    arabicContent: "أفلام ومسلسلات عربية",
+    animeWorld: "عالم الأنمي والكرتون",
+    indianMovies: "أفلام هندية",
   }
 } as const;
 
