@@ -1,0 +1,10 @@
+{
+  "appId": "com.sarad.app",
+  "appName": "Sarad",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://eed.sisko.replit.dev",
+    "cleartext": true
+  }
+}
