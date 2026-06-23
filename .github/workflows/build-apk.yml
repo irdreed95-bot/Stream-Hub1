@@ -1,0 +1,47 @@
+name: Build Sarad APK
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: |
+          npm install
+          npm install @capacitor/core @capacitor/android
+          npm install -g @capacitor/assets
+
+      - name: Generate Icons and Splash
+        run: |
+          if [ -f "icon.png" ]; then
+            npx capacitor-assets generate --android
+          fi
+
+      - name: Build Web Asset
+        run: npm run build
+
+      - name: Sync Capacitor
+        run: |
+          npx cap init Sarad com.sarad.app --web-dir=dist
+          npx cap add android
+          npx cap sync android
+
+      - name: Build Android APK
+        run: |
+          cd android && ./gradlew assembleDebug
+
+      - name: Upload APK Package
+        uses: actions/upload-artifact@v3
+        with:
+          name: Sarad-Streaming-App
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          
