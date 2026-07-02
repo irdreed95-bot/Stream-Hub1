@@ -1,12 +1,6 @@
 {
-  "buildCommand": "cd artifacts/streamvault && pnpm install && pnpm run build",
+  "buildCommand": "pnpm install && cd artifacts/streamvault && pnpm run build",
   "outputDirectory": "artifacts/streamvault/dist/public",
   "installCommand": "pnpm install --frozen-lockfile",
-  "framework": "vite",
-  "root": "artifacts/streamvault",
-  "env": {
-    "NODE_ENV": "production",
-    "PORT": "3000",
-    "BASE_PATH": "/"
-  }
+  "framework": "vite"
 }
