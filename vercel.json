@@ -1,0 +1,11 @@
+{
+  "buildCommand": "pnpm install && pnpm -r --filter './artifacts/streamvault' run build",
+  "outputDirectory": "artifacts/streamvault/dist/public",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "framework": "vite",
+  "env": {
+    "NODE_ENV": "production",
+    "PORT": "3000",
+    "BASE_PATH": "/"
+  }
+}
