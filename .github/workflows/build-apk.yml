@@ -26,22 +26,23 @@ jobs:
           pnpm install @capacitor/core @capacitor/android
           pnpm install -g @capacitor/assets
 
+      - name: Build Web Asset
+        run: |
+          cd artifacts/streamvault
+          pnpm run build
+
+      - name: Add and Sync Capacitor Android
+        run: |
+          cd artifacts/streamvault
+          npx cap add android
+          npx cap sync android
+
       - name: Generate Icons and Splash
         run: |
           cd artifacts/streamvault
           if [ -f "icon.png" ]; then
             npx capacitor-assets generate --android
           fi
-
-      - name: Build Web Asset
-        run: |
-          cd artifacts/streamvault
-          pnpm run build
-
-      - name: Sync Capacitor
-        run: |
-          cd artifacts/streamvault
-          npx cap sync android
 
       - name: Build Android APK
         run: |
@@ -52,3 +53,4 @@ jobs:
         with:
           name: StreamVault-APK
           path: artifacts/streamvault/android/app/build/outputs/apk/debug/app-debug.apk
+          
