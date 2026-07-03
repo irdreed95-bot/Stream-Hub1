@@ -32,29 +32,29 @@ jobs:
           pnpm install @capacitor/core @capacitor/android
           pnpm install -g @capacitor/assets
 
+      - name: Build Web Asset
+        run: |
+          cd artifacts/streamvault
+          pnpm run build
+
       - name: Init, Add and Sync Capacitor Android
         run: |
           cd artifacts/streamvault
           
-          # مسح أي إعدادات سابقة
+          # مسح أي إعدادات سيرفر سابقة
           rm -f capacitor.config.ts capacitor.config.json
           
-          # إنشاء المجلد الوهمي لتجاوز الأخطاء
-          mkdir -p dist
-          touch dist/index.html
-          
-          # إنشاء ملف الإعدادات وربطه برابط Vercel مالتك
+          # إنشاء إعدادات تعتمد على الملفات المحلية فقط
           cat <<EOF > capacitor.config.json
           {
             "appId": "com.streamvault.app",
             "appName": "StreamVault",
-            "webDir": "dist",
-            "server": {
-              "url": "https://YOUR_SITE_NAME.vercel.app",
-              "cleartext": true
-            }
+            "webDir": "dist"
           }
           EOF
+          
+          # التأكد من وجود مجلد dist (تغيير مسار البناء حسب إطار عملك)
+          [ -d "build" ] && cp -r build/* dist/ || echo "Using existing dist"
           
           npx cap add android
           npx cap sync android
