@@ -1,17 +1,10 @@
 {
-  "appId": "com.streamvault.app",
-  "appName": "StreamVault",
-  "webDir": "dist/public",
+  "appId": "com.sarad.app",
+  "appName": "Sarad",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
   "server": {
     "url": "https://stream-hub1-api-123456.vercel.app/",
-    "cleartext": true,
-    "allowNavigation": [
-      "*"
-    ]
-  },
-  "plugins": {
-    "SplashScreen": {
-      "launchShowDuration": 0
-    }
+    "cleartext": true
   }
 }
