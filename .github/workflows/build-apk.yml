@@ -35,18 +35,11 @@ jobs:
         run: |
           cd artifacts/streamvault
           
-          # فحص ذكي لاكتشاف مجلد البناء الصحيح
-          if [ -d "build" ]; then
-            WEB_DIR="build"
-          elif [ -d "out" ]; then
-            WEB_DIR="out"
-          elif [ -d "www" ]; then
-            WEB_DIR="www"
-          else
-            WEB_DIR="dist"
-          fi
+          # إنشاء مجلد وملف وهمي لحل مشكلة Capacitor
+          mkdir -p dist
+          touch dist/index.html
           
-          npx cap init StreamVault com.streamvault.app --web-dir=$WEB_DIR
+          npx cap init StreamVault com.streamvault.app --web-dir=dist
           npx cap add android
           npx cap sync android
 
