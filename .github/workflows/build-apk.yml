@@ -31,9 +31,10 @@ jobs:
           cd artifacts/streamvault
           pnpm run build
 
-      - name: Add and Sync Capacitor Android
+      - name: Init, Add and Sync Capacitor Android
         run: |
           cd artifacts/streamvault
+          npx cap init StreamVault com.streamvault.app --web-dir=dist
           npx cap add android
           npx cap sync android
 
