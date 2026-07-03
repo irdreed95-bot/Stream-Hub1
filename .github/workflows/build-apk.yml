@@ -1,4 +1,4 @@
-name: Build Sarad APK
+name: Build StreamVault APK
 on:
   push:
     branches: [ main ]
@@ -17,36 +17,38 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: 10
 
       - name: Install Dependencies
         run: |
           pnpm install
+          cd artifacts/streamvault
           pnpm install @capacitor/core @capacitor/android
           pnpm install -g @capacitor/assets
 
       - name: Generate Icons and Splash
         run: |
+          cd artifacts/streamvault
           if [ -f "icon.png" ]; then
             npx capacitor-assets generate --android
           fi
 
-            - name: Build Web Asset
-        run: pnpm run build
+      - name: Build Web Asset
+        run: |
+          cd artifacts/streamvault
+          pnpm run build
 
       - name: Sync Capacitor
         run: |
-          npx cap init Sarad com.sarad.app --web-dir=dist
-          npx cap add android
+          cd artifacts/streamvault
           npx cap sync android
 
       - name: Build Android APK
         run: |
-          cd android && ./gradlew assembleDebug
+          cd artifacts/streamvault/android && ./gradlew assembleDebug
 
       - name: Upload APK Package
         uses: actions/upload-artifact@v4
         with:
-          name: Sarad-Streaming-App
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          
+          name: StreamVault-APK
+          path: artifacts/streamvault/android/app/build/outputs/apk/debug/app-debug.apk
