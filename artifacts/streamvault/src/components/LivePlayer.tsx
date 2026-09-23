@@ -24,7 +24,7 @@ export function LivePlayer({ url, channelName }: LivePlayerProps) {
     const video = videoRef.current;
     
     if (Hls.isSupported() && (url.includes('.m3u8') || url.includes('m3u'))) {
-      const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+      const hls = new Hls({ enableWorker: true, lowLatencyMode: false, capLevelToPlayerSize: true, backBufferLength: 30, maxBufferLength: 30 });
       hlsRef.current = hls;
       hls.loadSource(url);
       hls.attachMedia(video);
@@ -33,10 +33,17 @@ export function LivePlayer({ url, channelName }: LivePlayerProps) {
         setStatus("playing");
       });
       hls.on(Hls.Events.ERROR, (_, data) => {
-        if (data.fatal) {
-          setStatus("error");
-          setErrorMsg("Stream unavailable or channel is currently offline.");
+        if (!data.fatal) return;
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          hls.startLoad();
+          return;
         }
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          hls.recoverMediaError();
+          return;
+        }
+        setStatus("error");
+        setErrorMsg("Stream unavailable or channel is currently offline.");
       });
     } else {
       video.src = url;
