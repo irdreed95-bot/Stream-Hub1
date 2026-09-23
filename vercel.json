@@ -1,6 +1,7 @@
 {
-  "buildCommand": "pnpm install && cd artifacts/streamvault && pnpm run build",
-  "outputDirectory": "artifacts/streamvault/dist/public",
+  "framework": "vite",
   "installCommand": "pnpm install --frozen-lockfile",
-  "framework": "vite"
+  "buildCommand": "pnpm --filter @workspace/streamvault run build",
+  "outputDirectory": "artifacts/streamvault/dist/public",
+  "cleanUrls": true
 }

@@ -7,9 +7,6 @@ import { Input } from "@/components/ui/input";
 import videojs from "video.js";
 import "video.js/dist/video-js.css";
 
-const SANDBOX =
-  "allow-same-origin allow-scripts allow-forms allow-presentation allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation";
-
 interface ValidatedServer { id: string; name: string; url: string | null; valid: boolean; }
 interface VideoPlayerProps { tmdbId: number; type: "movie" | "tv"; season?: number; episode?: number; }
 
@@ -20,6 +17,7 @@ export function VideoPlayer({ tmdbId, type, season, episode }: VideoPlayerProps)
   const [selectedServerId, setSelectedServerId] = useState<string>("");
   const [customStreams, setCustomStreams] = useState<any[]>([]);
   const [showDirect, setShowDirect] = useState(false);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     try {
@@ -35,8 +33,8 @@ export function VideoPlayer({ tmdbId, type, season, episode }: VideoPlayerProps)
     setValidating(true);
     setValidServers([]);
     setSelectedServerId("");
+    setLoadError("");
 
-    // Read admin-configured server URL overrides from localStorage
     let adminUrls: string[] = Array(10).fill("");
     try {
       const raw = localStorage.getItem("admin_server_urls");
@@ -46,19 +44,33 @@ export function VideoPlayer({ tmdbId, type, season, episode }: VideoPlayerProps)
       }
     } catch {}
 
+    const controller = new AbortController();
     fetch("/api/validate-servers", {
       method: "POST",
+      signal: controller.signal,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tmdbId: String(tmdbId), type, season: season || 1, episode: episode || 1, adminUrls }),
+      body: JSON.stringify({
+        tmdbId: String(tmdbId),
+        type,
+        season: season || 1,
+        episode: episode || 1,
+        adminUrls,
+      }),
     })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error("Server validation failed");
+        return r.json();
+      })
       .then(data => {
-        const valid = (data.servers as ValidatedServer[]).filter(s => s.valid);
-        const toShow = valid.length > 0 ? valid : (data.servers as ValidatedServer[]);
+        const servers = Array.isArray(data?.servers) ? data.servers as ValidatedServer[] : [];
+        const valid = servers.filter(s => s.valid && s.url);
+        const toShow = valid.length > 0 ? valid : servers.filter(s => s.url);
         setValidServers(toShow);
         if (toShow.length > 0) setSelectedServerId(toShow[0].id);
       })
-      .catch(() => {
+      .catch(error => {
+        if (error?.name === "AbortError") return;
+        setLoadError("Unable to verify servers. Trying available sources.");
         const fallback = sources.filter(s => s.group === "A").map(s => ({
           id: s.id,
           name: s.name,
@@ -69,6 +81,8 @@ export function VideoPlayer({ tmdbId, type, season, episode }: VideoPlayerProps)
         if (fallback.length > 0) setSelectedServerId(fallback[0].id);
       })
       .finally(() => setValidating(false));
+
+    return () => controller.abort();
   }, [tmdbId, type, season, episode]);
 
   const currentServer = validServers.find(s => s.id === selectedServerId);
@@ -117,8 +131,9 @@ export function VideoPlayer({ tmdbId, type, season, episode }: VideoPlayerProps)
             src={iframeUrl}
             className="w-full h-full border-0"
             allowFullScreen
-            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-            sandbox={SANDBOX}
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen; web-share"
+            referrerPolicy="origin-when-cross-origin"
+            loading="eager"
             data-testid="embed-iframe"
           />
         ) : (
@@ -194,6 +209,10 @@ export function VideoPlayer({ tmdbId, type, season, episode }: VideoPlayerProps)
           </>
         )}
       </div>
+
+      {loadError && !validating && (
+        <p className="text-[10px] text-muted-foreground/70 text-center pt-1">{loadError}</p>
+      )}
 
       {/* Valid server count indicator */}
       {!validating && validServers.length > 0 && (

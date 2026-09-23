@@ -185,3 +185,24 @@
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
   .scrollbar-hide::-webkit-scrollbar { display: none; }
 }
+
+
+html {
+  background: hsl(var(--background));
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overscroll-behavior-x: none;
+}
+body {
+  min-width: 0;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+button, a, select, input {
+  -webkit-tap-highlight-color: transparent;
+}
+video, iframe {
+  max-width: 100%;
+}
