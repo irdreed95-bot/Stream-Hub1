@@ -21,58 +21,54 @@ jobs:
           node-version: '22'
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
       - name: Install Dependencies
-        run: |
-          pnpm install
-          cd artifacts/streamvault
-          pnpm install @capacitor/core @capacitor/android
-          pnpm install -g @capacitor/assets
+        run: pnpm install --frozen-lockfile
 
-      - name: Init, Add and Sync Capacitor Android
+      - name: Build web app
+        run: pnpm --filter @workspace/streamvault run build
+
+      - name: Prepare Capacitor Android
+        env:
+          STREAMVAULT_WEB_URL: ${{ secrets.STREAMVAULT_WEB_URL }}
         run: |
           cd artifacts/streamvault
-          
-          # مسح أي إعدادات سابقة
           rm -f capacitor.config.ts capacitor.config.json
-          
-          # إنشاء المجلد الوهمي لتجاوز الأخطاء
-          mkdir -p dist
-          touch dist/index.html
-          
-          # إنشاء ملف الإعدادات وربطه برابط Vercel الصحيح
+          if [ -z "$STREAMVAULT_WEB_URL" ]; then
+            echo "STREAMVAULT_WEB_URL GitHub secret is required."
+            exit 1
+          fi
           cat <<EOF > capacitor.config.json
           {
-            "appId": "com.streamvault.app",
-            "appName": "StreamVault",
-            "webDir": "dist",
+            "appId": "com.sarad.app",
+            "appName": "Sarad",
+            "webDir": "dist/public",
             "server": {
-              "url": "https://stream-hub1-api-server-m3wh.vercel.app",
-              "cleartext": true
+              "url": "$STREAMVAULT_WEB_URL",
+              "cleartext": false
             }
           }
           EOF
-          
-          npx cap add android
-          npx cap sync android
+          pnpm exec cap add android
+          pnpm exec cap sync android
 
       - name: Generate Icons and Splash
         run: |
           cd artifacts/streamvault
           if [ -f "icon.png" ]; then
-            npx capacitor-assets generate --android
+            pnpm exec capacitor-assets generate --android
           fi
 
       - name: Build Android APK
         run: |
-          cd artifacts/streamvault/android && ./gradlew assembleDebug
+          cd artifacts/streamvault/android
+          ./gradlew assembleDebug
 
       - name: Upload APK Package
         uses: actions/upload-artifact@v4
         with:
           name: StreamVault-APK
           path: artifacts/streamvault/android/app/build/outputs/apk/debug/app-debug.apk
-          
