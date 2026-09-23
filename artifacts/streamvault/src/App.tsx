@@ -18,6 +18,7 @@ import Profile from "@/pages/Profile";
 import { Sidebar } from "@/components/Sidebar";
 import { AdminBanner } from "@/components/AdminBanner";
 import { Footer } from "@/components/Footer";
+import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
@@ -51,7 +52,8 @@ function Router() {
 
 export default function App() {
   return (
-    <I18nProvider>
+    <AppErrorBoundary>
+      <I18nProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
@@ -60,6 +62,7 @@ export default function App() {
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>
-    </I18nProvider>
+      </I18nProvider>
+    </AppErrorBoundary>
   );
 }
